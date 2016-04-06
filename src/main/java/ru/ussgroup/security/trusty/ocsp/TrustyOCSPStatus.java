@@ -12,7 +12,7 @@ public class TrustyOCSPStatus {
     private Date revocationTime;
 
     private int revocationReason;
-    
+
     public TrustyOCSPStatus(int status, Date revocationTime, int revocationReason) {
         this.status = status;
         this.revocationTime = revocationTime;

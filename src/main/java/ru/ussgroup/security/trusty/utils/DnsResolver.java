@@ -1,21 +1,21 @@
 package ru.ussgroup.security.trusty.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class DnsResolver {
     private static final Logger logger = LoggerFactory.getLogger(DnsResolver.class);
-    
+
     private static ConcurrentHashMap<String, InetAddress> m = new ConcurrentHashMap<>();
 
     static {
-        Thread t = new Thread () {
+        Thread t = new Thread() {
             @Override
             public void run() {
                 while (!interrupted()) {
@@ -26,7 +26,7 @@ public class DnsResolver {
                             logger.debug("", e);
                         }
                     }
-                    
+
                     try {
                         Thread.sleep(10_000);
                     } catch (InterruptedException e) {
@@ -35,7 +35,7 @@ public class DnsResolver {
                 }
             }
         };
-        
+
         t.setDaemon(true);
         t.start();
     }
@@ -49,7 +49,7 @@ public class DnsResolver {
             }
         }
     }
-    
+
     public static InetAddress getInetAddress(String domainName) {
         return m.get(domainName);
     }

@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class TrustyOCSPValidationResult {
     private Object response;
-    
+
     private Map<BigInteger, TrustyOCSPStatus> statuses;
 
     public TrustyOCSPValidationResult(Object response, Map<BigInteger, TrustyOCSPStatus> statuses) {

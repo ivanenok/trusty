@@ -1,17 +1,14 @@
 package ru.ussgroup.security.trusty;
 
+import kz.gov.pki.kalkan.jce.provider.KalkanProvider;
+import ru.ussgroup.security.trusty.repository.TrustyRepository;
+
+import javax.security.auth.x500.X500PrivateCredential;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.KeyStore;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.Security;
-import java.security.Signature;
-import java.security.SignatureException;
+import java.security.*;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
@@ -20,11 +17,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Enumeration;
 import java.util.List;
-
-import javax.security.auth.x500.X500PrivateCredential;
-
-import kz.gov.pki.kalkan.jce.provider.KalkanProvider;
-import ru.ussgroup.security.trusty.repository.TrustyRepository;
 
 /*
  * getExtendedKeyUsage
@@ -54,54 +46,54 @@ public class TrustyUtils {
     static {
         if (Security.getProvider(KalkanProvider.PROVIDER_NAME) == null) Security.addProvider(new KalkanProvider());
     }
-    
+
     public static List<X509Certificate> getCertPath(X509Certificate cert, TrustyRepository repository) {
         List<X509Certificate> list = new ArrayList<>();
-        
+
         list.add(cert);
-        
+
         X509Certificate current = cert;
-        
-        while (true) {        
+
+        while (true) {
             X509Certificate x509IntermediateCert = repository.getIntermediateCert(current);
-            
+
             if (x509IntermediateCert != null) {
                 list.add(x509IntermediateCert);
-                
+
                 current = x509IntermediateCert;
             } else {
                 break;
             }
         }
-        
+
         return list;
     }
-    
+
     public static List<X509Certificate> getFullCertPath(X509Certificate cert, TrustyRepository repository) {
         List<X509Certificate> list = getCertPath(cert, repository);
-        
+
         list.add(repository.getTrustedCert(list.get(list.size() - 1)));
-        
+
         return list;
     }
-    
+
     public static String sign(String data, PrivateKey privateKey) throws SignatureException {
         return Base64.getEncoder().encodeToString(sign(data.getBytes(StandardCharsets.UTF_8), privateKey));
     }
-    
+
     public static byte[] sign(byte[] data, PrivateKey privateKey) throws SignatureException {
         try {
             Signature signature = Signature.getInstance(privateKey.getAlgorithm());
-            
+
             signature.initSign(privateKey);
             signature.update(data);
-            
+
             return signature.sign();
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new RuntimeException(e);
         }
     }
-    
+
     public static X509Certificate loadCertFromResources(String path) {
         try (InputStream in = TrustyUtils.class.getResourceAsStream(path)) {
             return (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(in);
@@ -109,7 +101,7 @@ public class TrustyUtils {
             throw new RuntimeException(e);
         }
     }
-    
+
     public static X509Certificate loadCertFromFile(String path) {
         try (InputStream in = new FileInputStream(path)) {
             return (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(in);
@@ -117,23 +109,23 @@ public class TrustyUtils {
             throw new RuntimeException(e);
         }
     }
-    
+
     public static X500PrivateCredential loadCredentialFromResources(String path, String password) {
         try {
             KeyStore keyStore = KeyStore.getInstance("pkcs12");
-            
+
             try (InputStream in = TrustyUtils.class.getResourceAsStream(path)) {
                 return loadCredentialFromStream(password, keyStore, in);
-            } 
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
-    
+
     public static X500PrivateCredential loadCredentialFromFile(String path, String password) {
         try {
             KeyStore keyStore = KeyStore.getInstance("pkcs12");
-            
+
             try (InputStream in = new FileInputStream(path)) {
                 return loadCredentialFromStream(password, keyStore, in);
             }
@@ -141,7 +133,7 @@ public class TrustyUtils {
             throw new RuntimeException(e);
         }
     }
-    
+
     public static String toBase64(X509Certificate certificate) throws CertificateEncodingException {
         return new String(Base64.getEncoder().encode(certificate.getEncoded()));
     }
@@ -149,10 +141,10 @@ public class TrustyUtils {
     public static String toBase64(Key key) {
         return new String(Base64.getEncoder().encode(key.getEncoded()));
     }
-    
+
     public static X509Certificate loadFromString(String base64Encoded) throws CertificateParsingException {
         X509Certificate cert = null;
-        
+
         try {
             cert = (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(Base64.getDecoder().decode(removeNewLines(base64Encoded))));
         } catch (Exception e) {
@@ -167,22 +159,22 @@ public class TrustyUtils {
     private static X500PrivateCredential loadCredentialFromStream(String password, KeyStore keyStore, InputStream in) {
         try {
             keyStore.load(in, password.toCharArray());
-            
+
             Enumeration<String> aliases = keyStore.aliases();
-            
-            while (aliases.hasMoreElements()){
+
+            while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();
-                
-                return new X500PrivateCredential((X509Certificate)keyStore.getCertificate(alias), 
-                                                      (PrivateKey)keyStore.getKey(alias, password.toCharArray()));
+
+                return new X500PrivateCredential((X509Certificate) keyStore.getCertificate(alias),
+                        (PrivateKey) keyStore.getKey(alias, password.toCharArray()));
             }
-            
+
             return null;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
-    
+
     public static String removeNewLines(String s) {
         return s.replace("\r", "").replace("\n", "").replace(" ", "");
     }
